@@ -1,0 +1,401 @@
+import { useState, useEffect } from "react";
+import Sidebar from "../components/Sidebar";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
+function Analytics() {
+  const [subscriptions, setSubscriptions] = useState([]);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/subscriptions")
+      .then((res) => res.json())
+      .then((data) => setSubscriptions(data))
+      .catch((err) => console.log(err));
+  }, []);
+
+  const totalSpend = subscriptions.reduce(
+    (sum, sub) => sum + Number(sub.cost || 0),
+    0
+  );
+
+  const activeApps = subscriptions.filter(
+    (sub) => sub.status === "Active"
+  ).length;
+
+  const pieData = subscriptions.map((sub) => ({
+    name: sub.name,
+    value: Number(sub.cost),
+  }));
+
+  const COLORS = [
+    "#2563EB",
+    "#10B981",
+    "#F59E0B",
+    "#EF4444",
+    "#8B5CF6",
+    "#06B6D4",
+    "#F97316",
+  ];
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "#F3F4F6",
+      }}
+    >
+      <Sidebar />
+
+      <div
+        style={{
+          flex: 1,
+          padding: "30px",
+        }}
+      >
+        <h1
+          style={{
+            color: "#111827",
+            fontSize: "34px",
+            fontWeight: "800",
+            marginBottom: "6px",
+          }}
+        >
+          Analytics
+        </h1>
+
+        <p
+          style={{
+            color: "#64748B",
+            fontSize: "15px",
+            marginBottom: "25px",
+          }}
+        >
+          Analyze spending and subscription trends
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(220px,1fr))",
+            gap: "18px",
+          }}
+        >
+          <div style={cardStyle}>
+            <h4 style={cardTitle}>
+              Total Spend
+            </h4>
+
+            <h2 style={cardValue}>
+              ₹{totalSpend}
+            </h2>
+          </div>
+
+          <div style={cardStyle}>
+            <h4 style={cardTitle}>
+              Total Apps
+            </h4>
+
+            <h2 style={cardValue}>
+              {subscriptions.length}
+            </h2>
+          </div>
+
+          <div style={cardStyle}>
+            <h4 style={cardTitle}>
+              Active Apps
+            </h4>
+
+            <h2 style={cardValue}>
+              {activeApps}
+            </h2>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "20px",
+            marginTop: "25px",
+          }}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              padding: "25px",
+              borderRadius: "20px",
+              boxShadow:
+                "0 10px 25px rgba(0,0,0,0.08)",
+            }}
+          >
+            <h3
+              style={{
+                color: "#111827",
+                fontSize: "20px",
+                fontWeight: "700",
+                marginBottom: "15px",
+              }}
+            >
+              Spending Distribution
+            </h3>
+
+            <ResponsiveContainer
+              width="100%"
+              height={320}
+            >
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={110}
+                  label
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell
+                      key={index}
+                      fill={
+                        COLORS[
+                          index % COLORS.length
+                        ]
+                      }
+                    />
+                  ))}
+                </Pie>
+
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div
+            style={{
+              background: "#FFFFFF",
+              padding: "25px",
+              borderRadius: "20px",
+              boxShadow:
+                "0 10px 25px rgba(0,0,0,0.08)",
+            }}
+          >
+            <h3
+              style={{
+                color: "#111827",
+                fontSize: "20px",
+                fontWeight: "700",
+              }}
+            >
+              Analytics Insights
+            </h3>
+
+            <div
+              style={{
+                marginTop: "20px",
+              }}
+            >
+              <p style={insightStyle}>
+                💰 Monthly Spend:
+                <span style={blueValue}>
+                  ₹{totalSpend}
+                </span>
+              </p>
+
+              <p style={insightStyle}>
+                📦 Total Apps:
+                <span style={greenValue}>
+                  {subscriptions.length}
+                </span>
+              </p>
+
+              <p style={insightStyle}>
+                ✅ Active Apps:
+                <span style={purpleValue}>
+                  {activeApps}
+                </span>
+              </p>
+
+              <p style={insightStyle}>
+                ⚡ Optimization Potential:
+                <span style={orangeValue}>
+                  ₹{Math.round(
+                    totalSpend * 0.15
+                  )}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "#FFFFFF",
+            marginTop: "25px",
+            borderRadius: "20px",
+            padding: "25px",
+            boxShadow:
+              "0 10px 25px rgba(0,0,0,0.08)",
+          }}
+        >
+          <h3
+            style={{
+              marginBottom: "20px",
+              color: "#111827",
+              fontSize: "22px",
+              fontWeight: "700",
+            }}
+          >
+            Top Subscription Costs
+          </h3>
+
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  background:
+                    "linear-gradient(to right,#EFF6FF,#F8FAFC)",
+                }}
+              >
+                <th style={tableHeader}>
+                  Software
+                </th>
+
+                <th style={tableHeader}>
+                  Cost
+                </th>
+
+                <th style={tableHeader}>
+                  Status
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {subscriptions.map((sub) => (
+                <tr
+                  key={sub._id}
+                  style={{
+                    borderBottom:
+                      "1px solid #E5E7EB",
+                  }}
+                >
+                  <td style={tableCell}>
+                    {sub.name}
+                  </td>
+
+                  <td
+                    style={{
+                      ...tableCell,
+                      fontWeight: "800",
+                      color: "#2563EB",
+                      fontSize: "16px",
+                    }}
+                  >
+                    ₹{sub.cost}
+                  </td>
+
+                  <td style={tableCell}>
+                    <span
+                      style={{
+                        background:
+                          "#DCFCE7",
+                        color: "#166534",
+                        padding:
+                          "6px 12px",
+                        borderRadius:
+                          "20px",
+                        fontSize: "13px",
+                        fontWeight:
+                          "700",
+                      }}
+                    >
+                      {sub.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const cardStyle = {
+  background: "#FFFFFF",
+  padding: "20px",
+  borderRadius: "20px",
+  boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+};
+
+const cardTitle = {
+  color: "#64748B",
+  fontSize: "13px",
+  textTransform: "uppercase",
+  letterSpacing: "1px",
+  marginBottom: "10px",
+};
+
+const cardValue = {
+  color: "#0F172A",
+  fontSize: "34px",
+  fontWeight: "800",
+  margin: 0,
+};
+
+const insightStyle = {
+  color: "#111827",
+  fontSize: "16px",
+  fontWeight: "600",
+  marginBottom: "18px",
+};
+
+const blueValue = {
+  marginLeft: "8px",
+  color: "#2563EB",
+  fontWeight: "800",
+};
+
+const greenValue = {
+  marginLeft: "8px",
+  color: "#10B981",
+  fontWeight: "800",
+};
+
+const purpleValue = {
+  marginLeft: "8px",
+  color: "#8B5CF6",
+  fontWeight: "800",
+};
+
+const orangeValue = {
+  marginLeft: "8px",
+  color: "#F97316",
+  fontWeight: "800",
+};
+
+const tableHeader = {
+  padding: "14px",
+  color: "#0F172A",
+  fontWeight: "800",
+  fontSize: "14px",
+};
+
+const tableCell = {
+  padding: "14px",
+  color: "#374151",
+  fontWeight: "600",
+};
+
+export default Analytics;
