@@ -4,6 +4,7 @@ const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 const subscriptionRoutes = require("./routes/subscriptions");
+const authRoutes = require("./routes/auth");
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/auth", authRoutes);
 
 const client = new MongoClient(process.env.MONGO_URI);
 
