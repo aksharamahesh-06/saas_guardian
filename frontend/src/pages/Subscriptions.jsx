@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
+import apiRequest from "../services/api";
 
 function Subscriptions() {
   const [subscriptions, setSubscriptions] = useState([]);
@@ -7,125 +8,156 @@ function Subscriptions() {
   const [cost, setCost] = useState("");
   const [renewal, setRenewal] = useState("");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const fetchSubscriptions = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/subscriptions"
+      const data = await apiRequest("/subscriptions");
+      return data;
+    } catch (error) {
+      console.error(
+        "SUBSCRIPTIONS FETCH ERROR:",
+        error
       );
 
-      const data = await response.json();
-      setSubscriptions(data);
-    } catch (error) {
-      console.error(error);
+      return [];
     }
   };
 
   useEffect(() => {
-  const loadSubscriptions = async () => {
-    try {
-      const response = await fetch(
-        "http://localhost:5000/api/subscriptions"
-      );
+    let cancelled = false;
 
-      const data = await response.json();
-      setSubscriptions(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    fetchSubscriptions().then((data) => {
+      if (!cancelled) {
+        setSubscriptions(data);
+        setLoading(false);
+      }
+    });
 
-  loadSubscriptions();
-}, []);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const addSubscription = async () => {
-    if (!name || !cost || !renewal) {
+    if (!name.trim() || !cost || !renewal) {
       alert("Please fill all fields");
       return;
     }
 
     const newSubscription = {
-      name,
+      name: name.trim(),
       cost: Number(cost),
       renewal,
       status: "Active",
     };
 
     try {
-      await fetch(
-        "http://localhost:5000/api/subscriptions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(newSubscription),
-        }
-      );
+      setSaving(true);
+
+      await apiRequest("/subscriptions", {
+        method: "POST",
+        body: JSON.stringify(newSubscription),
+      });
 
       setName("");
       setCost("");
       setRenewal("");
 
-      fetchSubscriptions();
+      const data = await fetchSubscriptions();
+      setSubscriptions(data);
 
       alert("Subscription added successfully!");
     } catch (error) {
-      console.error(error);
-      alert("Error saving subscription");
+      console.error(
+        "ADD SUBSCRIPTION ERROR:",
+        error
+      );
+
+      alert(
+        error.message ||
+          "Error saving subscription"
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
   const deleteSubscription = async (id) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this subscription?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
-      await fetch(
-        `http://localhost:5000/api/subscriptions/${id}`,
+      await apiRequest(
+        `/subscriptions/${id}`,
         {
           method: "DELETE",
         }
       );
 
-      fetchSubscriptions();
+      const data = await fetchSubscriptions();
+      setSubscriptions(data);
+
+      alert(
+        "Subscription deleted successfully!"
+      );
     } catch (error) {
-      console.error(error);
+      console.error(
+        "DELETE SUBSCRIPTION ERROR:",
+        error
+      );
+
+      alert(
+        error.message ||
+          "Error deleting subscription"
+      );
     }
   };
 
-  const filteredSubscriptions = subscriptions.filter((sub) =>
-    sub.name?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const totalSubscriptions = subscriptions.length;
-
-  const monthlySpend = subscriptions.reduce(
-    (sum, sub) => sum + Number(sub.cost || 0),
-    0
-  );
-
-  const activeSubscriptions = subscriptions.filter(
-    (sub) => sub.status === "Active"
-  ).length;
-
-  const upcomingRenewals = subscriptions.filter((sub) => {
-    const today = new Date();
-    const renewalDate = new Date(sub.renewal);
-
-    const diffDays = Math.ceil(
-      (renewalDate - today) /
-        (1000 * 60 * 60 * 24)
+  const filteredSubscriptions =
+    subscriptions.filter((sub) =>
+      sub.name
+        ?.toLowerCase()
+        .includes(search.toLowerCase())
     );
 
-    return diffDays >= 0 && diffDays <= 7;
-  });
+  const totalSubscriptions =
+    subscriptions.length;
 
-  const highestCost =
-    subscriptions.length > 0
-      ? subscriptions.reduce((prev, current) =>
-          Number(prev.cost) > Number(current.cost)
-            ? prev
-            : current
-        )
-      : null;
+  const monthlySpend =
+    subscriptions.reduce(
+      (sum, sub) =>
+        sum + Number(sub.cost || 0),
+      0
+    );
+
+  const activeSubscriptions =
+    subscriptions.filter(
+      (sub) => sub.status === "Active"
+    ).length;
+
+  const upcomingRenewals =
+    subscriptions.filter((sub) => {
+      const today = new Date();
+      const renewalDate =
+        new Date(sub.renewal);
+
+      const diffDays = Math.ceil(
+        (renewalDate - today) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      return (
+        diffDays >= 0 &&
+        diffDays <= 7
+      );
+    });
 
   return (
     <div
@@ -160,7 +192,8 @@ function Subscriptions() {
             marginBottom: "20px",
           }}
         >
-          Track, manage and optimize all subscriptions.
+          Track and manage your software
+          subscriptions.
         </p>
 
         {/* KPI CARDS */}
@@ -195,7 +228,7 @@ function Subscriptions() {
           />
         </div>
 
-        {/* ALERT */}
+        {/* UPCOMING RENEWALS */}
 
         {upcomingRenewals.length > 0 && (
           <div
@@ -219,7 +252,8 @@ function Subscriptions() {
 
             {upcomingRenewals.map((sub) => (
               <p key={sub._id}>
-                {sub.name} renews on {sub.renewal}
+                {sub.name} renews on{" "}
+                {sub.renewal}
               </p>
             ))}
           </div>
@@ -284,17 +318,24 @@ function Subscriptions() {
 
             <button
               onClick={addSubscription}
+              disabled={saving}
               style={{
-                background: "#2563EB",
+                background: saving
+                  ? "#94A3B8"
+                  : "#2563EB",
                 color: "#FFFFFF",
                 border: "none",
                 padding: "12px 20px",
                 borderRadius: "10px",
-                cursor: "pointer",
+                cursor: saving
+                  ? "not-allowed"
+                  : "pointer",
                 fontWeight: "700",
               }}
             >
-              + Add Subscription
+              {saving
+                ? "Adding..."
+                : "+ Add Subscription"}
             </button>
           </div>
         </div>
@@ -315,51 +356,11 @@ function Subscriptions() {
             border: "1px solid #CBD5E1",
             marginBottom: "20px",
             fontSize: "15px",
+            boxSizing: "border-box",
           }}
         />
 
-        {/* SUMMARY */}
-
-        <div
-          style={{
-            background: "#FFFFFF",
-            borderRadius: "18px",
-            padding: "20px",
-            marginBottom: "20px",
-            boxShadow:
-              "0 8px 20px rgba(0,0,0,0.08)",
-          }}
-        >
-          <h3
-            style={{
-              marginTop: 0,
-            }}
-          >
-            Subscription Insights
-          </h3>
-
-          <p>
-            💰 Highest Cost App:{" "}
-            <strong>
-              {highestCost
-                ? `${highestCost.name} (₹${highestCost.cost})`
-                : "No Data"}
-            </strong>
-          </p>
-
-          <p>
-            📊 Potential Savings: ₹
-            {Math.round(monthlySpend * 0.15)}
-          </p>
-
-          <p>
-            ⚡ Recommendation:
-            Review expensive subscriptions
-            before renewal.
-          </p>
-        </div>
-
-        {/* TABLE */}
+        {/* SUBSCRIPTIONS TABLE */}
 
         <div
           style={{
@@ -368,6 +369,7 @@ function Subscriptions() {
             padding: "20px",
             boxShadow:
               "0 8px 20px rgba(0,0,0,0.08)",
+            overflowX: "auto",
           }}
         >
           <h2
@@ -379,85 +381,146 @@ function Subscriptions() {
             All Subscriptions
           </h2>
 
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "separate",
-              borderSpacing: "0 10px",
-            }}
-          >
-            <thead>
-              <tr>
-                <th style={thStyle}>Software</th>
-                <th style={thStyle}>Cost</th>
-                <th style={thStyle}>Renewal</th>
-                <th style={thStyle}>Status</th>
-                <th style={thStyle}>Action</th>
-              </tr>
-            </thead>
+          {loading ? (
+            <p
+              style={{
+                textAlign: "center",
+                color: "#64748B",
+                padding: "30px",
+              }}
+            >
+              Loading subscriptions...
+            </p>
+          ) : filteredSubscriptions.length ===
+            0 ? (
+            <p
+              style={{
+                textAlign: "center",
+                color: "#64748B",
+                padding: "30px",
+              }}
+            >
+              {search
+                ? "No subscriptions match your search."
+                : "No subscriptions added yet."}
+            </p>
+          ) : (
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "separate",
+                borderSpacing: "0 10px",
+              }}
+            >
+              <thead>
+                <tr>
+                  <th style={thStyle}>
+                    Software
+                  </th>
 
-            <tbody>
-              {filteredSubscriptions.map((sub) => (
-                <tr
-                  key={sub._id}
-                  style={{
-                    background: "#F8FAFC",
-                  }}
-                >
-                  <td style={tdStyle}>
-                    {sub.name}
-                  </td>
+                  <th style={thStyle}>
+                    Cost
+                  </th>
 
-                  <td
-                    style={{
-                      ...tdStyle,
-                      color: "#2563EB",
-                      fontWeight: "700",
-                    }}
-                  >
-                    ₹{sub.cost}
-                  </td>
+                  <th style={thStyle}>
+                    Renewal
+                  </th>
 
-                  <td style={tdStyle}>
-                    {sub.renewal}
-                  </td>
+                  <th style={thStyle}>
+                    Status
+                  </th>
 
-                  <td style={tdStyle}>
-                    <span
-                      style={{
-                        background: "#DCFCE7",
-                        color: "#15803D",
-                        padding: "6px 12px",
-                        borderRadius: "20px",
-                        fontWeight: "700",
-                        fontSize: "13px",
-                      }}
-                    >
-                      {sub.status}
-                    </span>
-                  </td>
-
-                  <td style={tdStyle}>
-                    <button
-                      onClick={() =>
-                        deleteSubscription(sub._id)
-                      }
-                      style={{
-                        background: "#EF4444",
-                        color: "#FFFFFF",
-                        border: "none",
-                        padding: "8px 14px",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
+                  <th style={thStyle}>
+                    Action
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {filteredSubscriptions.map(
+                  (sub) => (
+                    <tr
+                      key={sub._id}
+                      style={{
+                        background:
+                          "#F8FAFC",
+                      }}
+                    >
+                      <td style={tdStyle}>
+                        {sub.name}
+                      </td>
+
+                      <td
+                        style={{
+                          ...tdStyle,
+                          color: "#2563EB",
+                          fontWeight: "700",
+                        }}
+                      >
+                        ₹{sub.cost}
+                      </td>
+
+                      <td style={tdStyle}>
+                        {sub.renewal}
+                      </td>
+
+                      <td style={tdStyle}>
+                        <span
+                          style={{
+                            background:
+                              sub.status ===
+                              "Active"
+                                ? "#DCFCE7"
+                                : "#FEE2E2",
+                            color:
+                              sub.status ===
+                              "Active"
+                                ? "#15803D"
+                                : "#DC2626",
+                            padding:
+                              "6px 12px",
+                            borderRadius:
+                              "20px",
+                            fontWeight:
+                              "700",
+                            fontSize:
+                              "13px",
+                          }}
+                        >
+                          {sub.status}
+                        </span>
+                      </td>
+
+                      <td style={tdStyle}>
+                        <button
+                          onClick={() =>
+                            deleteSubscription(
+                              sub._id
+                            )
+                          }
+                          style={{
+                            background:
+                              "#EF4444",
+                            color:
+                              "#FFFFFF",
+                            border: "none",
+                            padding:
+                              "8px 14px",
+                            borderRadius:
+                              "8px",
+                            cursor:
+                              "pointer",
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

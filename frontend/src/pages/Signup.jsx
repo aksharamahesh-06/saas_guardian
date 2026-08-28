@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import apiRequest from "../services/api";
 
 function Signup() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -23,37 +27,27 @@ function Signup() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:5000/api/auth/signup",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(form),
-        }
-      );
+      await apiRequest("/auth/signup", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
 
-      const data = await response.json();
+      alert("✅ Account Created Successfully!");
 
-      if (response.ok) {
-        alert("✅ Account Created Successfully!");
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        password: "",
+      });
 
-        setForm({
-          name: "",
-          email: "",
-          phone: "",
-          password: "",
-        });
-      } else {
-        alert(data.message || "Signup Failed");
-      }
+      navigate("/login");
     } catch (error) {
-      console.error(error);
-      alert("❌ Unable to connect to server");
+      console.error("SIGNUP ERROR:", error);
+      alert(error.message || "Signup Failed");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -99,7 +93,8 @@ function Signup() {
             fontSize: "15px",
           }}
         >
-          Create your workspace and start managing subscriptions smarter
+          Create your workspace and start
+          managing subscriptions smarter
         </p>
 
         <form onSubmit={handleSignup}>
@@ -153,15 +148,40 @@ function Signup() {
               border: "none",
               padding: "15px",
               borderRadius: "12px",
-              cursor: "pointer",
+              cursor: loading
+                ? "not-allowed"
+                : "pointer",
               fontSize: "16px",
               fontWeight: "600",
               marginTop: "10px",
+              opacity: loading ? 0.7 : 1,
             }}
           >
-            {loading ? "Creating Account..." : "Create Account"}
+            {loading
+              ? "Creating Account..."
+              : "Create Account"}
           </button>
         </form>
+
+        <p
+          style={{
+            color: "#9cb3d9",
+            textAlign: "center",
+            marginTop: "20px",
+          }}
+        >
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            style={{
+              color: "#3b82f6",
+              textDecoration: "none",
+              fontWeight: "600",
+            }}
+          >
+            Sign In
+          </Link>
+        </p>
       </div>
     </div>
   );

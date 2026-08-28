@@ -7,19 +7,44 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import apiRequest from "../services/api";
 
 function Analytics() {
   const [subscriptions, setSubscriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSubscriptions = async () => {
+    try {
+      const data = await apiRequest("/subscriptions");
+      return data;
+    } catch (error) {
+      console.error(
+        "ANALYTICS FETCH ERROR:",
+        error
+      );
+
+      return [];
+    }
+  };
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/subscriptions")
-      .then((res) => res.json())
-      .then((data) => setSubscriptions(data))
-      .catch((err) => console.log(err));
+    let cancelled = false;
+
+    fetchSubscriptions().then((data) => {
+      if (!cancelled) {
+        setSubscriptions(data);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const totalSpend = subscriptions.reduce(
-    (sum, sub) => sum + Number(sub.cost || 0),
+    (sum, sub) =>
+      sum + Number(sub.cost || 0),
     0
   );
 
@@ -27,10 +52,12 @@ function Analytics() {
     (sub) => sub.status === "Active"
   ).length;
 
-  const pieData = subscriptions.map((sub) => ({
-    name: sub.name,
-    value: Number(sub.cost),
-  }));
+  const pieData = subscriptions
+    .map((sub) => ({
+      name: sub.name,
+      value: Number(sub.cost || 0),
+    }))
+    .filter((sub) => sub.value > 0);
 
   const COLORS = [
     "#2563EB",
@@ -58,6 +85,8 @@ function Analytics() {
           padding: "30px",
         }}
       >
+        {/* HEADER */}
+
         <h1
           style={{
             color: "#111827",
@@ -76,8 +105,11 @@ function Analytics() {
             marginBottom: "25px",
           }}
         >
-          Analyze spending and subscription trends
+          Analyze spending and subscription
+          data.
         </p>
+
+        {/* KPI CARDS */}
 
         <div
           style={{
@@ -118,34 +150,54 @@ function Analytics() {
           </div>
         </div>
 
+        {/* SPENDING DISTRIBUTION */}
+
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "20px",
+            background: "#FFFFFF",
+            padding: "25px",
+            borderRadius: "20px",
+            boxShadow:
+              "0 10px 25px rgba(0,0,0,0.08)",
             marginTop: "25px",
           }}
         >
-          <div
+          <h3
             style={{
-              background: "#FFFFFF",
-              padding: "25px",
-              borderRadius: "20px",
-              boxShadow:
-                "0 10px 25px rgba(0,0,0,0.08)",
+              color: "#111827",
+              fontSize: "20px",
+              fontWeight: "700",
+              marginBottom: "15px",
             }}
           >
-            <h3
+            Spending Distribution
+          </h3>
+
+          {loading ? (
+            <div
               style={{
-                color: "#111827",
-                fontSize: "20px",
-                fontWeight: "700",
-                marginBottom: "15px",
+                height: "320px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#64748B",
               }}
             >
-              Spending Distribution
-            </h3>
-
+              Loading analytics...
+            </div>
+          ) : pieData.length === 0 ? (
+            <div
+              style={{
+                height: "320px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#64748B",
+              }}
+            >
+              No subscription data available.
+            </div>
+          ) : (
             <ResponsiveContainer
               width="100%"
               height={320}
@@ -158,79 +210,32 @@ function Analytics() {
                   outerRadius={110}
                   label
                 >
-                  {pieData.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={
-                        COLORS[
-                          index % COLORS.length
-                        ]
-                      }
-                    />
-                  ))}
+                  {pieData.map(
+                    (entry, index) => (
+                      <Cell
+                        key={`${entry.name}-${index}`}
+                        fill={
+                          COLORS[
+                            index %
+                              COLORS.length
+                          ]
+                        }
+                      />
+                    )
+                  )}
                 </Pie>
 
-                <Tooltip />
+                <Tooltip
+                  formatter={(value) =>
+                    `₹${value}`
+                  }
+                />
               </PieChart>
             </ResponsiveContainer>
-          </div>
-
-          <div
-            style={{
-              background: "#FFFFFF",
-              padding: "25px",
-              borderRadius: "20px",
-              boxShadow:
-                "0 10px 25px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h3
-              style={{
-                color: "#111827",
-                fontSize: "20px",
-                fontWeight: "700",
-              }}
-            >
-              Analytics Insights
-            </h3>
-
-            <div
-              style={{
-                marginTop: "20px",
-              }}
-            >
-              <p style={insightStyle}>
-                💰 Monthly Spend:
-                <span style={blueValue}>
-                  ₹{totalSpend}
-                </span>
-              </p>
-
-              <p style={insightStyle}>
-                📦 Total Apps:
-                <span style={greenValue}>
-                  {subscriptions.length}
-                </span>
-              </p>
-
-              <p style={insightStyle}>
-                ✅ Active Apps:
-                <span style={purpleValue}>
-                  {activeApps}
-                </span>
-              </p>
-
-              <p style={insightStyle}>
-                ⚡ Optimization Potential:
-                <span style={orangeValue}>
-                  ₹{Math.round(
-                    totalSpend * 0.15
-                  )}
-                </span>
-              </p>
-            </div>
-          </div>
+          )}
         </div>
+
+        {/* SUBSCRIPTION COST TABLE */}
 
         <div
           style={{
@@ -240,6 +245,7 @@ function Analytics() {
             padding: "25px",
             boxShadow:
               "0 10px 25px rgba(0,0,0,0.08)",
+            overflowX: "auto",
           }}
         >
           <h3
@@ -250,82 +256,122 @@ function Analytics() {
               fontWeight: "700",
             }}
           >
-            Top Subscription Costs
+            Subscription Costs
           </h3>
 
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-            }}
-          >
-            <thead>
-              <tr
-                style={{
-                  background:
-                    "linear-gradient(to right,#EFF6FF,#F8FAFC)",
-                }}
-              >
-                <th style={tableHeader}>
-                  Software
-                </th>
-
-                <th style={tableHeader}>
-                  Cost
-                </th>
-
-                <th style={tableHeader}>
-                  Status
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {subscriptions.map((sub) => (
+          {loading ? (
+            <p
+              style={{
+                textAlign: "center",
+                color: "#64748B",
+                padding: "25px",
+              }}
+            >
+              Loading subscriptions...
+            </p>
+          ) : subscriptions.length === 0 ? (
+            <p
+              style={{
+                textAlign: "center",
+                color: "#64748B",
+                padding: "25px",
+              }}
+            >
+              No subscriptions available.
+            </p>
+          ) : (
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+              }}
+            >
+              <thead>
                 <tr
-                  key={sub._id}
                   style={{
-                    borderBottom:
-                      "1px solid #E5E7EB",
+                    background:
+                      "linear-gradient(to right,#EFF6FF,#F8FAFC)",
                   }}
                 >
-                  <td style={tableCell}>
-                    {sub.name}
-                  </td>
+                  <th style={tableHeader}>
+                    Software
+                  </th>
 
-                  <td
-                    style={{
-                      ...tableCell,
-                      fontWeight: "800",
-                      color: "#2563EB",
-                      fontSize: "16px",
-                    }}
-                  >
-                    ₹{sub.cost}
-                  </td>
+                  <th style={tableHeader}>
+                    Cost
+                  </th>
 
-                  <td style={tableCell}>
-                    <span
+                  <th style={tableHeader}>
+                    Renewal
+                  </th>
+
+                  <th style={tableHeader}>
+                    Status
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {subscriptions.map(
+                  (sub) => (
+                    <tr
+                      key={sub._id}
                       style={{
-                        background:
-                          "#DCFCE7",
-                        color: "#166534",
-                        padding:
-                          "6px 12px",
-                        borderRadius:
-                          "20px",
-                        fontSize: "13px",
-                        fontWeight:
-                          "700",
+                        borderBottom:
+                          "1px solid #E5E7EB",
                       }}
                     >
-                      {sub.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      <td style={tableCell}>
+                        {sub.name}
+                      </td>
+
+                      <td
+                        style={{
+                          ...tableCell,
+                          fontWeight: "800",
+                          color: "#2563EB",
+                          fontSize: "16px",
+                        }}
+                      >
+                        ₹{sub.cost}
+                      </td>
+
+                      <td style={tableCell}>
+                        {sub.renewal}
+                      </td>
+
+                      <td style={tableCell}>
+                        <span
+                          style={{
+                            background:
+                              sub.status ===
+                              "Active"
+                                ? "#DCFCE7"
+                                : "#FEE2E2",
+                            color:
+                              sub.status ===
+                              "Active"
+                                ? "#166534"
+                                : "#DC2626",
+                            padding:
+                              "6px 12px",
+                            borderRadius:
+                              "20px",
+                            fontSize:
+                              "13px",
+                            fontWeight:
+                              "700",
+                          }}
+                        >
+                          {sub.status}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
@@ -336,7 +382,8 @@ const cardStyle = {
   background: "#FFFFFF",
   padding: "20px",
   borderRadius: "20px",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+  boxShadow:
+    "0 10px 25px rgba(0,0,0,0.08)",
 };
 
 const cardTitle = {
@@ -354,48 +401,19 @@ const cardValue = {
   margin: 0,
 };
 
-const insightStyle = {
-  color: "#111827",
-  fontSize: "16px",
-  fontWeight: "600",
-  marginBottom: "18px",
-};
-
-const blueValue = {
-  marginLeft: "8px",
-  color: "#2563EB",
-  fontWeight: "800",
-};
-
-const greenValue = {
-  marginLeft: "8px",
-  color: "#10B981",
-  fontWeight: "800",
-};
-
-const purpleValue = {
-  marginLeft: "8px",
-  color: "#8B5CF6",
-  fontWeight: "800",
-};
-
-const orangeValue = {
-  marginLeft: "8px",
-  color: "#F97316",
-  fontWeight: "800",
-};
-
 const tableHeader = {
   padding: "14px",
   color: "#0F172A",
   fontWeight: "800",
   fontSize: "14px",
+  textAlign: "left",
 };
 
 const tableCell = {
   padding: "14px",
   color: "#374151",
   fontWeight: "600",
+  textAlign: "left",
 };
 
 export default Analytics;

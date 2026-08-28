@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 
 function Settings() {
@@ -8,11 +8,89 @@ function Settings() {
   const [monthlyReports, setMonthlyReports] =
     useState(true);
 
-  const [optimizationSuggestions, setOptimizationSuggestions] =
-    useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const saveSettings = () => {
-    alert("Settings saved successfully!");
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/settings`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Request failed: ${response.status}`
+          );
+        }
+
+        const data = await response.json();
+
+        setRenewalReminders(
+          data.renewalReminders ?? true
+        );
+
+        setMonthlyReports(
+          data.monthlyReports ?? true
+        );
+      } catch (error) {
+        console.error(
+          "Error loading settings:",
+          error
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  const saveSettings = async () => {
+    try {
+      setSaving(true);
+
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/settings`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            renewalReminders,
+            monthlyReports,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Request failed: ${response.status}`
+        );
+      }
+
+      alert("Settings saved successfully!");
+    } catch (error) {
+      console.error(
+        "Error saving settings:",
+        error
+      );
+
+      alert("Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -31,6 +109,8 @@ function Settings() {
           padding: "30px",
         }}
       >
+        {/* HEADER */}
+
         <h1
           style={{
             fontSize: "34px",
@@ -48,8 +128,11 @@ function Settings() {
             marginBottom: "25px",
           }}
         >
-          Manage notifications, security and account preferences.
+          Manage notifications, security and account
+          preferences.
         </p>
+
+        {/* STAT CARDS */}
 
         <div
           style={{
@@ -62,13 +145,22 @@ function Settings() {
         >
           <StatCard
             title="Notifications"
-            value="Enabled"
+            value={
+              renewalReminders ||
+              monthlyReports
+                ? "Enabled"
+                : "Disabled"
+            }
             color="#2563EB"
           />
 
           <StatCard
             title="Reports"
-            value="Monthly"
+            value={
+              monthlyReports
+                ? "Monthly"
+                : "Off"
+            }
             color="#10B981"
           />
 
@@ -85,6 +177,8 @@ function Settings() {
           />
         </div>
 
+        {/* MAIN CONTENT */}
+
         <div
           style={{
             display: "grid",
@@ -92,6 +186,8 @@ function Settings() {
             gap: "20px",
           }}
         >
+          {/* NOTIFICATION SETTINGS */}
+
           <div
             style={{
               background: "#FFFFFF",
@@ -111,53 +207,67 @@ function Settings() {
               Notification Preferences
             </h2>
 
-            <SettingRow
-              title="Renewal Reminders"
-              description="Receive alerts before subscriptions renew."
-              checked={renewalReminders}
-              onChange={() =>
-                setRenewalReminders(!renewalReminders)
-              }
-            />
+            {loading ? (
+              <p
+                style={{
+                  color: "#64748B",
+                  padding: "20px 0",
+                }}
+              >
+                Loading settings...
+              </p>
+            ) : (
+              <>
+                <SettingRow
+                  title="Renewal Reminders"
+                  description="Receive alerts before subscriptions renew."
+                  checked={renewalReminders}
+                  onChange={() =>
+                    setRenewalReminders(
+                      !renewalReminders
+                    )
+                  }
+                />
 
-            <SettingRow
-              title="Monthly Reports"
-              description="Receive spending reports every month."
-              checked={monthlyReports}
-              onChange={() =>
-                setMonthlyReports(!monthlyReports)
-              }
-            />
+                <SettingRow
+                  title="Monthly Reports"
+                  description="Receive spending reports every month."
+                  checked={monthlyReports}
+                  onChange={() =>
+                    setMonthlyReports(
+                      !monthlyReports
+                    )
+                  }
+                />
 
-            <SettingRow
-              title="Optimization Suggestions"
-              description="Get AI-based cost saving recommendations."
-              checked={optimizationSuggestions}
-              onChange={() =>
-                setOptimizationSuggestions(
-                  !optimizationSuggestions
-                )
-              }
-            />
-
-            <button
-              onClick={saveSettings}
-              style={{
-                marginTop: "25px",
-                background:
-                  "linear-gradient(135deg,#2563EB,#1D4ED8)",
-                color: "#FFF",
-                border: "none",
-                padding: "14px 24px",
-                borderRadius: "12px",
-                cursor: "pointer",
-                fontWeight: "700",
-                fontSize: "15px",
-              }}
-            >
-              Save Settings
-            </button>
+                <button
+                  onClick={saveSettings}
+                  disabled={saving}
+                  style={{
+                    marginTop: "25px",
+                    background: saving
+                      ? "#94A3B8"
+                      : "linear-gradient(135deg,#2563EB,#1D4ED8)",
+                    color: "#FFF",
+                    border: "none",
+                    padding: "14px 24px",
+                    borderRadius: "12px",
+                    cursor: saving
+                      ? "not-allowed"
+                      : "pointer",
+                    fontWeight: "700",
+                    fontSize: "15px",
+                  }}
+                >
+                  {saving
+                    ? "Saving..."
+                    : "Save Settings"}
+                </button>
+              </>
+            )}
           </div>
+
+          {/* RIGHT SIDE */}
 
           <div
             style={{
@@ -166,6 +276,8 @@ function Settings() {
               gap: "20px",
             }}
           >
+            {/* SECURITY */}
+
             <div
               style={{
                 background: "#FFFFFF",
@@ -206,6 +318,8 @@ function Settings() {
               </div>
             </div>
 
+            {/* ACCOUNT */}
+
             <div
               style={{
                 background: "#FFFFFF",
@@ -231,8 +345,8 @@ function Settings() {
                 }}
               >
                 SaaS Guardian helps track software
-                subscriptions, renewal dates, spending
-                patterns and savings opportunities.
+                subscriptions, renewal dates and
+                spending patterns.
               </p>
             </div>
           </div>
@@ -297,8 +411,7 @@ function SettingRow({
         borderBottom:
           "1px solid #E2E8F0",
         display: "flex",
-        justifyContent:
-          "space-between",
+        justifyContent: "space-between",
         alignItems: "center",
       }}
     >
@@ -315,6 +428,7 @@ function SettingRow({
         <p
           style={{
             marginTop: "4px",
+            marginBottom: 0,
             color: "#64748B",
             fontSize: "14px",
           }}

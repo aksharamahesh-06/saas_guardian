@@ -3,52 +3,65 @@ import Sidebar from "../components/Sidebar";
 
 function Reports() {
   const [subscriptions, setSubscriptions] = useState([]);
-
-
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  const loadData = async () => {
-    try {
-      const response = await fetch(
-        "http://localhost:5000/api/subscriptions"
-      );
+    const loadData = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-      const data = await response.json();
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/subscriptions`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      setSubscriptions(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+        if (!response.ok) {
+          throw new Error(
+            `Request failed: ${response.status}`
+          );
+        }
 
-  loadData();
-}, []);
+        const data = await response.json();
+        setSubscriptions(data);
+      } catch (error) {
+        console.error(
+          "Error loading reports:",
+          error
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const totalSubscriptions =
-    subscriptions.length;
+    loadData();
+  }, []);
 
-  const monthlySpend =
-    subscriptions.reduce(
-      (total, sub) =>
-        total + Number(sub.cost || 0),
-      0
-    );
+  const totalSubscriptions = subscriptions.length;
 
-  const annualSpend =
-    monthlySpend * 12;
+  const monthlySpend = subscriptions.reduce(
+    (total, sub) =>
+      total + Number(sub.cost || 0),
+    0
+  );
+
+  const annualSpend = monthlySpend * 12;
 
   const activeSubscriptions =
     subscriptions.filter(
-      (sub) =>
-        sub.status === "Active"
+      (sub) => sub.status === "Active"
     ).length;
 
   const inactiveSubscriptions =
     totalSubscriptions -
     activeSubscriptions;
 
-  const potentialSavings =
-    Math.round(monthlySpend * 0.15);
+  const potentialSavings = Math.round(
+    monthlySpend * 0.15
+  );
 
   const averageCost =
     totalSubscriptions > 0
@@ -71,32 +84,23 @@ function Reports() {
 
   const healthScore = Math.max(
     50,
-    100 -
-      inactiveSubscriptions * 5
+    100 - inactiveSubscriptions * 5
   );
 
   const downloadReport = () => {
     let csv =
       "Software,Cost,Renewal Date,Status\n";
 
-    subscriptions.forEach(
-      (sub) => {
-        csv += `${sub.name},${sub.cost},${sub.renewal},${sub.status}\n`;
-      }
-    );
+    subscriptions.forEach((sub) => {
+      csv += `"${sub.name}",${sub.cost},"${sub.renewal}","${sub.status}"\n`;
+    });
 
-    const blob = new Blob(
-      [csv],
-      {
-        type:
-          "text/csv;charset=utf-8;",
-      }
-    );
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
 
     const url =
-      window.URL.createObjectURL(
-        blob
-      );
+      window.URL.createObjectURL(blob);
 
     const link =
       document.createElement("a");
@@ -108,19 +112,13 @@ function Reports() {
       "SaaS_Guardian_Report.csv"
     );
 
-    document.body.appendChild(
-      link
-    );
+    document.body.appendChild(link);
 
     link.click();
 
-    document.body.removeChild(
-      link
-    );
+    document.body.removeChild(link);
 
-    window.URL.revokeObjectURL(
-      url
-    );
+    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -128,8 +126,7 @@ function Reports() {
       style={{
         display: "flex",
         minHeight: "100vh",
-        background:
-          "#F3F4F6",
+        background: "#F3F4F6",
       }}
     >
       <Sidebar />
@@ -140,6 +137,8 @@ function Reports() {
           padding: "30px",
         }}
       >
+        {/* HEADER */}
+
         <div
           style={{
             marginBottom: "25px",
@@ -162,12 +161,12 @@ function Reports() {
               fontSize: "15px",
             }}
           >
-            Executive summary of
-            subscription spending,
-            optimization opportunities
-            and SaaS health.
+            Review subscription spending, usage,
+            renewals and account statistics.
           </p>
         </div>
+
+        {/* KPI CARDS */}
 
         <div
           style={{
@@ -183,12 +182,8 @@ function Reports() {
               TOTAL APPS
             </p>
 
-            <h2
-              style={reportValue}
-            >
-              {
-                totalSubscriptions
-              }
+            <h2 style={reportValue}>
+              {totalSubscriptions}
             </h2>
           </div>
 
@@ -200,8 +195,7 @@ function Reports() {
             <h2
               style={{
                 ...reportValue,
-                color:
-                  "#2563EB",
+                color: "#2563EB",
               }}
             >
               ₹{monthlySpend}
@@ -216,8 +210,7 @@ function Reports() {
             <h2
               style={{
                 ...reportValue,
-                color:
-                  "#8B5CF6",
+                color: "#8B5CF6",
               }}
             >
               ₹{annualSpend}
@@ -226,20 +219,16 @@ function Reports() {
 
           <div style={reportCard}>
             <p style={reportTitle}>
-              SAVINGS
+              POTENTIAL SAVINGS
             </p>
 
             <h2
               style={{
                 ...reportValue,
-                color:
-                  "#F97316",
+                color: "#F97316",
               }}
             >
-              ₹
-              {
-                potentialSavings
-              }
+              ₹{potentialSavings}
             </h2>
           </div>
 
@@ -251,145 +240,22 @@ function Reports() {
             <h2
               style={{
                 ...reportValue,
-                color:
-                  "#10B981",
+                color: "#10B981",
               }}
             >
               {healthScore}%
             </h2>
           </div>
         </div>
-                <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.5fr 1fr",
-            gap: "20px",
-            marginBottom: "25px",
-          }}
-        >
-          <div
-            style={{
-              background: "#FFFFFF",
-              padding: "25px",
-              borderRadius: "20px",
-              boxShadow:
-                "0 10px 25px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h2
-              style={{
-                color: "#111827",
-                marginBottom: "20px",
-              }}
-            >
-              Executive Summary
-            </h2>
 
-            <p style={summaryText}>
-              💰 Monthly Spend:
-              <strong> ₹{monthlySpend}</strong>
-            </p>
-
-            <p style={summaryText}>
-              📈 Annual Spend:
-              <strong> ₹{annualSpend}</strong>
-            </p>
-
-            <p style={summaryText}>
-              📦 Active Services:
-              <strong>
-                {" "}
-                {activeSubscriptions}
-              </strong>
-            </p>
-
-            <p style={summaryText}>
-              🚀 Highest Expense:
-              <strong>
-                {" "}
-                {highestExpense
-                  ? `${highestExpense.name} (₹${highestExpense.cost})`
-                  : "No Data"}
-              </strong>
-            </p>
-
-            <p style={summaryText}>
-              💡 Potential Savings:
-              <strong>
-                {" "}
-                ₹{potentialSavings}
-              </strong>
-            </p>
-
-            <p style={summaryText}>
-              📊 Average Cost:
-              <strong>
-                {" "}
-                ₹{averageCost}
-              </strong>
-            </p>
-          </div>
-
-          <div
-            style={{
-              background:
-                "linear-gradient(135deg,#EFF6FF,#F8FAFC)",
-              padding: "25px",
-              borderRadius: "20px",
-              boxShadow:
-                "0 10px 25px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h2
-              style={{
-                color: "#111827",
-                marginBottom: "20px",
-              }}
-            >
-              AI Recommendations
-            </h2>
-
-            <ul
-              style={{
-                lineHeight: "2",
-                color: "#374151",
-                fontWeight: "600",
-                paddingLeft: "20px",
-              }}
-            >
-              <li>
-                Review inactive
-                subscriptions monthly.
-              </li>
-
-              <li>
-                Focus on reducing the
-                highest expense software.
-              </li>
-
-              <li>
-                Consider annual plans
-                for frequently used tools.
-              </li>
-
-              <li>
-                Potential monthly savings
-                of ₹{potentialSavings}.
-              </li>
-
-              <li>
-                Consolidate duplicate
-                software subscriptions.
-              </li>
-            </ul>
-          </div>
-        </div>
+        {/* EXECUTIVE SUMMARY */}
 
         <div
           style={{
             background: "#FFFFFF",
-            borderRadius: "20px",
             padding: "25px",
+            borderRadius: "20px",
+            marginBottom: "25px",
             boxShadow:
               "0 10px 25px rgba(0,0,0,0.08)",
           }}
@@ -400,106 +266,242 @@ function Reports() {
               marginBottom: "20px",
             }}
           >
-            Subscription Details
+            Executive Summary
           </h2>
 
-          <table
+          <p style={summaryText}>
+            Monthly Spend:
+            <strong> ₹{monthlySpend}</strong>
+          </p>
+
+          <p style={summaryText}>
+            Annual Spend:
+            <strong> ₹{annualSpend}</strong>
+          </p>
+
+          <p style={summaryText}>
+            Active Services:
+            <strong>
+              {" "}
+              {activeSubscriptions}
+            </strong>
+          </p>
+
+          <p style={summaryText}>
+            Inactive Services:
+            <strong>
+              {" "}
+              {inactiveSubscriptions}
+            </strong>
+          </p>
+
+          <p style={summaryText}>
+            Highest Expense:
+            <strong>
+              {" "}
+              {highestExpense
+                ? `${highestExpense.name} (₹${highestExpense.cost})`
+                : "No Data"}
+            </strong>
+          </p>
+
+          <p style={summaryText}>
+            Potential Savings:
+            <strong>
+              {" "}
+              ₹{potentialSavings}
+            </strong>
+          </p>
+
+          <p style={summaryText}>
+            Average Subscription Cost:
+            <strong>
+              {" "}
+              ₹{averageCost}
+            </strong>
+          </p>
+        </div>
+
+        {/* SUBSCRIPTION DETAILS */}
+
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: "20px",
+            padding: "25px",
+            boxShadow:
+              "0 10px 25px rgba(0,0,0,0.08)",
+          }}
+        >
+          <div
             style={{
-              width: "100%",
-              borderCollapse: "collapse",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "20px",
+              gap: "15px",
+              flexWrap: "wrap",
             }}
           >
-            <thead>
-              <tr
+            <h2
+              style={{
+                color: "#111827",
+                margin: 0,
+              }}
+            >
+              Subscription Details
+            </h2>
+
+            <button
+              onClick={downloadReport}
+              disabled={
+                loading ||
+                subscriptions.length === 0
+              }
+              style={{
+                background:
+                  loading ||
+                  subscriptions.length === 0
+                    ? "#94A3B8"
+                    : "linear-gradient(135deg,#2563EB,#1D4ED8)",
+                color: "#FFFFFF",
+                border: "none",
+                padding: "12px 24px",
+                borderRadius: "10px",
+                cursor:
+                  loading ||
+                  subscriptions.length === 0
+                    ? "not-allowed"
+                    : "pointer",
+                fontWeight: "700",
+              }}
+            >
+              Download Report
+            </button>
+          </div>
+
+          {loading ? (
+            <p
+              style={{
+                color: "#64748B",
+                padding: "20px 0",
+              }}
+            >
+              Loading subscription data...
+            </p>
+          ) : subscriptions.length === 0 ? (
+            <p
+              style={{
+                color: "#64748B",
+                padding: "20px 0",
+              }}
+            >
+              No subscriptions found.
+            </p>
+          ) : (
+            <div
+              style={{
+                overflowX: "auto",
+              }}
+            >
+              <table
                 style={{
-                  background:
-                    "linear-gradient(to right,#EFF6FF,#F8FAFC)",
+                  width: "100%",
+                  borderCollapse: "collapse",
                 }}
               >
-                <th style={tableHeader}>
-                  Software
-                </th>
-
-                <th style={tableHeader}>
-                  Cost
-                </th>
-
-                <th style={tableHeader}>
-                  Renewal
-                </th>
-
-                <th style={tableHeader}>
-                  Status
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {subscriptions.map((sub) => (
-                <tr
-                  key={sub._id}
-                  style={{
-                    borderBottom:
-                      "1px solid #E5E7EB",
-                  }}
-                >
-                  <td style={tableCell}>
-                    {sub.name}
-                  </td>
-
-                  <td
+                <thead>
+                  <tr
                     style={{
-                      ...tableCell,
-                      color: "#2563EB",
-                      fontWeight: "800",
+                      background:
+                        "linear-gradient(to right,#EFF6FF,#F8FAFC)",
                     }}
                   >
-                    ₹{sub.cost}
-                  </td>
+                    <th style={tableHeader}>
+                      Software
+                    </th>
 
-                  <td style={tableCell}>
-                    {sub.renewal}
-                  </td>
+                    <th style={tableHeader}>
+                      Cost
+                    </th>
 
-                  <td style={tableCell}>
-                    <span
-                      style={{
-                        background:
-                          "#DCFCE7",
-                        color: "#166534",
-                        padding:
-                          "6px 12px",
-                        borderRadius:
-                          "20px",
-                        fontSize: "13px",
-                        fontWeight:
-                          "700",
-                      }}
-                    >
-                      {sub.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <th style={tableHeader}>
+                      Renewal
+                    </th>
 
-          <button
-            onClick={downloadReport}
-            style={{
-              marginTop: "25px",
-              background:
-                "linear-gradient(135deg,#2563EB,#1D4ED8)",
-              color: "#FFFFFF",
-              border: "none",
-              padding: "12px 24px",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontWeight: "700",
-            }}
-          >
-            Download Report
-          </button>
+                    <th style={tableHeader}>
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {subscriptions.map(
+                    (sub) => (
+                      <tr
+                        key={sub._id}
+                        style={{
+                          borderBottom:
+                            "1px solid #E5E7EB",
+                        }}
+                      >
+                        <td
+                          style={tableCell}
+                        >
+                          {sub.name}
+                        </td>
+
+                        <td
+                          style={{
+                            ...tableCell,
+                            color: "#2563EB",
+                            fontWeight: "800",
+                          }}
+                        >
+                          ₹{sub.cost}
+                        </td>
+
+                        <td
+                          style={tableCell}
+                        >
+                          {sub.renewal}
+                        </td>
+
+                        <td
+                          style={tableCell}
+                        >
+                          <span
+                            style={{
+                              background:
+                                sub.status ===
+                                "Active"
+                                  ? "#DCFCE7"
+                                  : "#FEE2E2",
+                              color:
+                                sub.status ===
+                                "Active"
+                                  ? "#166534"
+                                  : "#DC2626",
+                              padding:
+                                "6px 12px",
+                              borderRadius:
+                                "20px",
+                              fontSize:
+                                "13px",
+                              fontWeight:
+                                "700",
+                            }}
+                          >
+                            {sub.status}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -510,7 +512,8 @@ const reportCard = {
   background: "#FFFFFF",
   padding: "20px",
   borderRadius: "20px",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+  boxShadow:
+    "0 10px 25px rgba(0,0,0,0.08)",
 };
 
 const reportTitle = {
@@ -540,12 +543,14 @@ const tableHeader = {
   color: "#111827",
   fontWeight: "800",
   fontSize: "14px",
+  textAlign: "left",
 };
 
 const tableCell = {
   padding: "14px",
   color: "#374151",
   fontWeight: "600",
+  textAlign: "left",
 };
 
 export default Reports;

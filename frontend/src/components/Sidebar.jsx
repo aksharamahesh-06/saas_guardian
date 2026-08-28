@@ -1,6 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Sidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    navigate("/login");
+  };
+
   return (
     <div
       style={{
@@ -9,10 +18,15 @@ function Sidebar() {
         backgroundColor: "#FFFFFF",
         padding: "30px",
         borderRight: "1px solid #ECECEC",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <h1>
-        SaaS <span style={{ color: "#E8B400" }}>Guardian</span>
+        SaaS{" "}
+        <span style={{ color: "#E8B400" }}>
+          Guardian
+        </span>
       </h1>
 
       <p>Track. Optimize. Save.</p>
@@ -25,7 +39,7 @@ function Sidebar() {
           gap: "20px",
         }}
       >
-        <Link to="/" style={linkStyle}>
+        <Link to="/dashboard" style={linkStyle}>
           Dashboard
         </Link>
 
@@ -41,6 +55,10 @@ function Sidebar() {
           Reports
         </Link>
 
+        <Link to="/renewals" style={linkStyle}>
+          Renewals
+        </Link>
+
         <Link to="/settings" style={linkStyle}>
           Settings
         </Link>
@@ -48,11 +66,27 @@ function Sidebar() {
         <Link to="/invoice-upload" style={linkStyle}>
           Invoice Upload
         </Link>
-
-        <Link to="/guardian-ai" style={linkStyle}>
-          Guardian AI
-        </Link>
       </div>
+
+      {/* LOGOUT */}
+
+      <button
+        onClick={handleLogout}
+        style={{
+          marginTop: "auto",
+          padding: "12px 16px",
+          backgroundColor: "#FEE2E2",
+          color: "#DC2626",
+          border: "none",
+          borderRadius: "10px",
+          fontSize: "16px",
+          fontWeight: "700",
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        Logout
+      </button>
     </div>
   );
 }

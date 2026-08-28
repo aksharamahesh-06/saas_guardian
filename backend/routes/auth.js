@@ -11,13 +11,19 @@ router.post("/signup", async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
 
+    if (!name || !email || !phone || !password) {
+      return res.status(400).json({
+        message: "All fields are required",
+      });
+    }
+
     const users = await getUsersCollection();
 
     const existingUser = await users.findOne({ email });
 
     if (existingUser) {
       return res.status(400).json({
-        message: "User already exists"
+        message: "User already exists",
       });
     }
 
@@ -27,30 +33,35 @@ router.post("/signup", async (req, res) => {
       name,
       email,
       phone,
-      password: hashedPassword
+      password: hashedPassword,
+      createdAt: new Date(),
     };
 
     const result = await users.insertOne(newUser);
 
     res.status(201).json({
       message: "User registered successfully",
-      userId: result.insertedId
+      userId: result.insertedId,
     });
-
   } catch (error) {
-    console.error(error);
+    console.error("SIGNUP ERROR:", error);
 
     res.status(500).json({
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 });
 
-module.exports = router;
 // LOGIN
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
 
     const users = await getUsersCollection();
 
@@ -58,7 +69,7 @@ router.post("/login", async (req, res) => {
 
     if (!user) {
       return res.status(400).json({
-        message: "Invalid Email"
+        message: "Invalid email or password",
       });
     }
 
@@ -69,37 +80,38 @@ router.post("/login", async (req, res) => {
 
     if (!isMatch) {
       return res.status(400).json({
-        message: "Invalid Password"
+        message: "Invalid email or password",
       });
     }
 
     const token = jwt.sign(
       {
-        id: user._id,
-        email: user.email
+        id: user._id.toString(),
+        email: user.email,
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: "7d"
+        expiresIn: "7d",
       }
     );
 
     res.status(200).json({
-      message: "Login Successful",
+      message: "Login successful",
       token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        phone: user.phone
-      }
+        phone: user.phone,
+      },
     });
-
   } catch (error) {
-    console.error(error);
+    console.error("LOGIN ERROR:", error);
 
     res.status(500).json({
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 });
+
+module.exports = router;
