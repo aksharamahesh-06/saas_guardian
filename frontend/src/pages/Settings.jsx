@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
 function Settings() {
   const [renewalReminders, setRenewalReminders] =
     useState(true);
@@ -17,7 +21,7 @@ function Settings() {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/settings`,
+          `${API_URL}/settings`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -60,7 +64,7 @@ function Settings() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/settings`,
+        `${API_URL}/settings`,
         {
           method: "PUT",
           headers: {
@@ -109,8 +113,6 @@ function Settings() {
           padding: "30px",
         }}
       >
-        {/* HEADER */}
-
         <h1
           style={{
             fontSize: "34px",
@@ -131,8 +133,6 @@ function Settings() {
           Manage notifications, security and account
           preferences.
         </p>
-
-        {/* STAT CARDS */}
 
         <div
           style={{
@@ -177,8 +177,6 @@ function Settings() {
           />
         </div>
 
-        {/* MAIN CONTENT */}
-
         <div
           style={{
             display: "grid",
@@ -186,8 +184,6 @@ function Settings() {
             gap: "20px",
           }}
         >
-          {/* NOTIFICATION SETTINGS */}
-
           <div
             style={{
               background: "#FFFFFF",
@@ -267,8 +263,6 @@ function Settings() {
             )}
           </div>
 
-          {/* RIGHT SIDE */}
-
           <div
             style={{
               display: "flex",
@@ -276,8 +270,6 @@ function Settings() {
               gap: "20px",
             }}
           >
-            {/* SECURITY */}
-
             <div
               style={{
                 background: "#FFFFFF",
@@ -317,8 +309,6 @@ function Settings() {
                 Secure
               </div>
             </div>
-
-            {/* ACCOUNT */}
 
             <div
               style={{

@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
 function Renewals() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +15,7 @@ function Renewals() {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/subscriptions`,
+          `${API_URL}/subscriptions`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

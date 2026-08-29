@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
 function Reports() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +15,7 @@ function Reports() {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/subscriptions`,
+          `${API_URL}/subscriptions`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -137,8 +141,6 @@ function Reports() {
           padding: "30px",
         }}
       >
-        {/* HEADER */}
-
         <div
           style={{
             marginBottom: "25px",
@@ -165,8 +167,6 @@ function Reports() {
             renewals and account statistics.
           </p>
         </div>
-
-        {/* KPI CARDS */}
 
         <div
           style={{
@@ -248,8 +248,6 @@ function Reports() {
           </div>
         </div>
 
-        {/* EXECUTIVE SUMMARY */}
-
         <div
           style={{
             background: "#FFFFFF",
@@ -321,8 +319,6 @@ function Reports() {
             </strong>
           </p>
         </div>
-
-        {/* SUBSCRIPTION DETAILS */}
 
         <div
           style={{
@@ -420,15 +416,12 @@ function Reports() {
                     <th style={tableHeader}>
                       Software
                     </th>
-
                     <th style={tableHeader}>
                       Cost
                     </th>
-
                     <th style={tableHeader}>
                       Renewal
                     </th>
-
                     <th style={tableHeader}>
                       Status
                     </th>
@@ -445,9 +438,7 @@ function Reports() {
                             "1px solid #E5E7EB",
                         }}
                       >
-                        <td
-                          style={tableCell}
-                        >
+                        <td style={tableCell}>
                           {sub.name}
                         </td>
 
@@ -461,15 +452,11 @@ function Reports() {
                           ₹{sub.cost}
                         </td>
 
-                        <td
-                          style={tableCell}
-                        >
+                        <td style={tableCell}>
                           {sub.renewal}
                         </td>
 
-                        <td
-                          style={tableCell}
-                        >
+                        <td style={tableCell}>
                           <span
                             style={{
                               background:
