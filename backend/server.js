@@ -10,8 +10,17 @@ const invoiceRoutes = require("./routes/invoices");
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
+
+// Health Check
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    message: "SaaS Guardian backend is running",
+  });
+});
 
 // API Routes
 app.use("/api/subscriptions", subscriptionRoutes);
@@ -44,7 +53,9 @@ app.use(
 
 // Test route
 app.get("/", (req, res) => {
-  res.send("SaaS Guardian Backend Running 🚀");
+  res.status(200).send(
+    "SaaS Guardian Backend Running 🚀"
+  );
 });
 
 // Start server
