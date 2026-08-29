@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
+// Remove /api from the API URL for static files
+const BACKEND_URL = API_URL.replace(/\/api\/?$/, "");
+
 function InvoiceUpload() {
   const [invoices, setInvoices] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -11,39 +18,41 @@ function InvoiceUpload() {
 
   // INITIAL LOAD
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const loadInvoices = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-    fetch(
-      `${import.meta.env.VITE_API_URL}/api/invoices`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
-      .then((response) => {
+        const response = await fetch(
+          `${API_URL}/invoices`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
         if (!response.ok) {
           throw new Error(
             `Request failed: ${response.status}`
           );
         }
 
-        return response.json();
-      })
-      .then((data) => {
+        const data = await response.json();
+
         setInvoices(data);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error(
           "Error loading invoices:",
           error
         );
 
         setError("Unable to load invoices.");
-      })
-      .finally(() => {
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    loadInvoices();
   }, []);
 
   // REFRESH INVOICES
@@ -52,7 +61,7 @@ function InvoiceUpload() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/invoices`,
+        `${API_URL}/invoices`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -141,7 +150,7 @@ function InvoiceUpload() {
       );
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/invoices/upload`,
+        `${API_URL}/invoices/upload`,
         {
           method: "POST",
           headers: {
@@ -692,7 +701,7 @@ function InvoiceUpload() {
                           }
                         >
                           <a
-                            href={`${import.meta.env.VITE_API_URL}/uploads/${invoice.fileName}`}
+                            href={`${BACKEND_URL}/uploads/${invoice.fileName}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
